@@ -1,0 +1,46 @@
+# 数据文件
+data/
+datasets/
+*.zip
+*.tar
+*.tar.gz
+
+# 模型权重
+weights/
+checkpoints/
+*.pth
+*.pt
+*.ckpt
+
+# 训练输出
+outputs/
+results/
+logs/
+runs/
+wandb/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.eggs/
+*.so
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# Jupyter
+.ipynb_checkpoints/
+
+# 环境
+venv/
+env/
+.env
