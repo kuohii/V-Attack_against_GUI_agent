@@ -1,0 +1,52 @@
+{
+  "run_info": {
+    "run_name": "screenspot_20260310_151443",
+    "model_path": "/disk1/users/fengyy/projects/models/OS-Atlas/models/OS-Atlas-Base-7B",
+    "data_root": "/disk1/users/fengyy/projects/V-Attack/datasets/screenspot",
+    "json_file": "screenspot.json",
+    "image_dir": "images",
+    "total_samples": 2,
+    "processed_samples": 2,
+    "timestamp": "2026-03-10T15:14:54.198626"
+  },
+  "results": [
+    {
+      "idx": 1,
+      "img_name": "mobile_1ca5b944-293a-46a1-af95-eb35bc8a0b2a.png",
+      "instruction": "view world clock",
+      "raw_output": "<|object_ref_start|>world clock<|object_ref_end|><|box_start|>(373,49),(628,214)<|box_end|><|im_end|>",
+      "parsed_type": "bbox",
+      "parsed_position": [
+        880,
+        80,
+        1482,
+        351
+      ],
+      "parsed_center": [
+        1181,
+        216
+      ],
+      "coord_source": "normalized",
+      "success": true
+    },
+    {
+      "idx": 2,
+      "img_name": "mobile_1ca5b944-293a-46a1-af95-eb35bc8a0b2a_masked.png",
+      "instruction": "view world clock",
+      "raw_output": "<|object_ref_start|>world clock<|object_ref_end|><|box_start|>(844,49),(903,126)<|box_end|><|im_end|>",
+      "parsed_type": "bbox",
+      "parsed_position": [
+        1992,
+        80,
+        2131,
+        207
+      ],
+      "parsed_center": [
+        2062,
+        144
+      ],
+      "coord_source": "normalized",
+      "success": true
+    }
+  ]
+}
