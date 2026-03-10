@@ -1,0 +1,39 @@
+# OS-Atlas-Base-7B gray-box V-Attack on ScreenSpot-v2
+# Backbone: OsAtlas7B (Qwen2-VL vision + text encoder)
+# Usage:
+#   cd /disk1/users/fengyy/projects/V-Attack
+#   python V-Attack.py --config-name screenspot_osatlas7b
+
+data:
+  batch_size: 1
+  num_samples_index: 0
+  num_samples: 300
+  output: "results/screenspot/osatlas7b"
+  cle_data_path: "datasets/screenspotv2"    # ScreenSpot-v2 clean image folder
+  text_path: "datasets/screenspotv2.csv"    # CSV with source / target columns
+
+optim:
+  alpha: 0.75
+  epsilon: 16
+  steps: 200
+
+model:
+  # OsAtlasBase7B uses 448x448 fixed resolution internally;
+  # input_res controls the loader crop before passing to the extractor.
+  input_res: 448
+  use_source_crop: False
+  use_target_crop: False
+  crop_scale: [0.75, 1.0]
+  device: "cuda:0"
+  backbone: ["OsAtlas7B"]
+
+attack:
+  method: 'pgd'
+  # vattack=True  → attack V (value) features of the vision transformer
+  # vattack=False → attack X (final hidden state) features
+  vattack: True
+  enhance: True
+  both: False
+  vision_attack: False
+  source_text: True
+  target_text: True

@@ -24,11 +24,11 @@ from surrogates import (
     ClipL336FeatureExtractor,
     ClipB32FeatureExtractor,
     ClipLaionFeatureExtractor,
+    OsAtlasBase7BFeatureExtractor,
     EnsembleFeatureLoss,
     EnsembleFeatureExtractor,
 )
 
-from utils import ensure_dir
 
 import pandas as pd
 
@@ -49,6 +49,7 @@ BACKBONE_MAP: Dict[str, type] = {
     "B16": ClipB16FeatureExtractor,
     "B32": ClipB32FeatureExtractor,
     "Laion": ClipLaionFeatureExtractor,
+    "OsAtlas7B": OsAtlasBase7BFeatureExtractor,
 }
 
 def get_models(cfg: MainConfig):
@@ -144,7 +145,7 @@ def attack_imgpair(
             else:
                 folder_to_save = os.path.join(cfg.data.output, folder, f"{st_index}_{ed_index}_no_vision")
 
-        ensure_dir(folder_to_save)
+        os.makedirs(folder_to_save, exist_ok=True)
 
         ext = os.path.splitext(name)[1].lower()
         if ext in [".jpg", ".jpeg"]:

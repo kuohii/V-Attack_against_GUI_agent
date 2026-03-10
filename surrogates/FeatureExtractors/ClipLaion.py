@@ -7,8 +7,14 @@ import numpy as np
 class ClipLaionFeatureExtractor(BaseFeatureExtractor):
     def __init__(self):
         super(ClipLaionFeatureExtractor, self).__init__()
-        self.model = CLIPModel.from_pretrained("laion/CLIP-ViT-G-14-laion2B-s12B-b42K")
-        self.processor = CLIPProcessor.from_pretrained("openai/clip-vit-large-patch14-336")
+        # 本地模型路径
+        local_model_path = "/disk1/users/fengyy/projects/models/CLIP/CLIP-ViT-G-14-laion2B-s12B-b42K"
+        
+        # 从本地加载模型和处理器
+        self.model = CLIPModel.from_pretrained(local_model_path, local_files_only=True)
+        self.processor = CLIPProcessor.from_pretrained(local_model_path, local_files_only=True)
+        # self.model = CLIPModel.from_pretrained("laion/CLIP-ViT-G-14-laion2B-s12B-b42K")
+        # self.processor = CLIPProcessor.from_pretrained("openai/clip-vit-large-patch14-336")
         self.normalizer = transforms.Compose(
         [
             transforms.Resize(224, interpolation=transforms.InterpolationMode.BICUBIC, antialias=True),
