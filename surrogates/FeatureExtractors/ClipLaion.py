@@ -17,10 +17,9 @@ class ClipLaionFeatureExtractor(BaseFeatureExtractor):
         # self.processor = CLIPProcessor.from_pretrained("openai/clip-vit-large-patch14-336")
         self.normalizer = transforms.Compose(
         [
-            transforms.Resize(224, interpolation=transforms.InterpolationMode.BICUBIC, antialias=True),
             transforms.Lambda(lambda img: torch.clamp(img, 0.0, 255.0) / 255.0),
-            transforms.CenterCrop(224),
-            transforms.Normalize((0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711)), # CLIP imgs mean and std.
+            transforms.Resize((224, 224), interpolation=transforms.InterpolationMode.BICUBIC, antialias=True),
+            transforms.Normalize((0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711)),
         ]
     )
 

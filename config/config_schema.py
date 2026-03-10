@@ -26,6 +26,9 @@ class OptimConfig:
     alpha: float = 0.75
     epsilon: int = 16
     steps: int = 200
+    # use_sign=True: sign-PGD（高频噪声扰动，视觉上颗粒感而非模糊）
+    # use_sign=False: Adam-PGD（默认）
+    use_sign: bool = True
 
 
 # ===========================
@@ -41,6 +44,7 @@ class ModelConfig:
     ensemble: bool = False
     device: str = "cuda:2"  # Using GPU 2
     backbone: List[str] = ("L336",)
+    full_resolution: bool = False  # 保持原始图片分辨率：DataLoader不resize，特征提取器内部自行缩放，输出与输入尺寸一致
 
 
 # ===========================

@@ -46,7 +46,7 @@ class OsAtlasBase7BFeatureExtractor(BaseFeatureExtractor):
         self.visual = full_model.visual  # Qwen2VisionTransformerPretrainedModel
 
         # ── Text embedding layer (LLM word embed, 3584-dim) ──────────────────
-        self.embed_tokens = full_model.model.embed_tokens
+        self.embed_tokens = full_model.get_input_embeddings()
 
         # ── Tokenizer (for tforward) ─────────────────────────────────────────
         self.tokenizer = AutoProcessor.from_pretrained(
@@ -54,7 +54,7 @@ class OsAtlasBase7BFeatureExtractor(BaseFeatureExtractor):
         ).tokenizer
 
         # Free large LLM layers to save GPU memory
-        del full_model.model.layers
+        del full_model.model.language_model.layers
         del full_model.lm_head
 
         # ── Derived constants ─────────────────────────────────────────────────
@@ -65,14 +65,16 @@ class OsAtlasBase7BFeatureExtractor(BaseFeatureExtractor):
         self.n_merged = self.n_patches // (self.MERGE_SIZE ** 2)  # 256
 
         # ── Differentiable image normalizer (same mean/std as CLIP/Qwen2VL) ──
+        # 使用 Resize((H, W)) 将整张原始图像等比例拉伸（而非先缩最短边再CenterCrop）。
+        # 这样整张图像的每个像素都参与特征计算，梯度覆盖全图，
+        # 消除"中心有扰动、边缘干净"的裁剪边界伪影。
         self.normalizer = transforms.Compose([
+            transforms.Lambda(lambda img: torch.clamp(img, 0.0, 255.0) / 255.0),
             transforms.Resize(
-                self.INPUT_SIZE,
+                (self.INPUT_SIZE, self.INPUT_SIZE),
                 interpolation=transforms.InterpolationMode.BICUBIC,
                 antialias=True,
             ),
-            transforms.Lambda(lambda img: torch.clamp(img, 0.0, 255.0) / 255.0),
-            transforms.CenterCrop(self.INPUT_SIZE),
             transforms.Normalize(
                 (0.48145466, 0.4578275, 0.40821073),
                 (0.26862954, 0.26130258, 0.27577711),

@@ -120,6 +120,20 @@ class EnsembleFeatureLoss(nn.Module):
             raise ValueError("Please set the source image and source text first.")
  
     @torch.no_grad()
+    def set_spatial_mask(self, spatial_mask: torch.Tensor):
+        """
+        用 bbox 坐标生成的空间 mask 覆盖文本相似度 mask。
+        spatial_mask: bool/float tensor, shape [B, N_merged_patches] = [B, 256]
+                      True/1.0 表示该 patch 属于攻击目标区域。
+        同时覆盖 mask 和 mask_index，使 V-loss 和 X-loss 都聚焦在该区域。
+        """
+        self.mask.clear()
+        self.mask_index.clear()
+        for _ in self.extractors:
+            self.mask.append(spatial_mask.float())
+            self.mask_index.append(spatial_mask.float())
+
+    @torch.no_grad()
     def set_mask_index(self):
         self.mask_index.clear()
         # image B N C ,text B D

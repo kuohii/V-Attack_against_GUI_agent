@@ -7,25 +7,29 @@
 data:
   batch_size: 1
   num_samples_index: 0
-  num_samples: 300
-  output: "results/screenspot/osatlas7b"
-  cle_data_path: "datasets/screenspotv2"    # ScreenSpot-v2 clean image folder
-  text_path: "datasets/screenspotv2.csv"    # CSV with source / target columns
+  num_samples: 2
+  output: "adv_images/osatlas7b/screenspot"
+  cle_data_path: "datasets/screenspot"    # ScreenSpot-v2 clean image folder
+  text_path: "datasets/screenspot.csv"    # CSV with source / target columns
 
 optim:
-  alpha: 0.75
+  alpha: 1.0        # sign-PGD 每步固定步长，alpha 即每步像素增量
   epsilon: 16
   steps: 200
+  use_sign: true    # sign-PGD：高频噪声扰动，视觉模糊感低，全图均匀分布
 
 model:
-  # OsAtlasBase7B uses 448x448 fixed resolution internally;
-  # input_res controls the loader crop before passing to the extractor.
+  # OsAtlasBase7B 内部 normalizer 固定 resize 到 448×448，
+  # full_resolution=true 时 DataLoader 不做任何 resize/crop，
+  # delta 在原始分辨率上计算，梯度通过 F.interpolate 正确反传，
+  # 输出图片尺寸与输入完全一致。
   input_res: 448
   use_source_crop: False
   use_target_crop: False
   crop_scale: [0.75, 1.0]
   device: "cuda:0"
   backbone: ["OsAtlas7B"]
+  full_resolution: true
 
 attack:
   method: 'pgd'

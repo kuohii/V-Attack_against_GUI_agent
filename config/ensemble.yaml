@@ -4,24 +4,26 @@
 data:
   batch_size: 1
   num_samples_index: 0
-  num_samples: 100
-  output: "results/ensemble/coco100"
-  cle_data_path: "datasets/coco300" # image folder
-  text_path: "datasets/coco300.csv" # label
+  num_samples: 2
+  output: "adv_images/osatlas7b/screenspot"
+  cle_data_path: "datasets/screenspot" # image folder
+  text_path: "datasets/screenspot.csv" # label
 
 optim:
-  alpha: 0.75
+  alpha: 1.0        # sign-PGD 每步固定步长
   epsilon: 16
   steps: 300
+  use_sign: true    # 高频噪声扰动，全图均匀，模糊感低
 
 model:
   input_res: 224
-  use_source_crop: True
+  use_source_crop: False
   use_target_crop: False
   crop_scale: [0.75, 1.0] 
-  device: "cuda:2" 
+  device: "cuda:0" 
   backbone: ["B16", "B32", "Laion"] 
   # Models for ensemble, note that L336(input_res = 336) is not included!
+  full_resolution: true
 
 attack: 
   method: 'pgd' 

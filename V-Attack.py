@@ -43,6 +43,7 @@ def load_labels_from_csv(csv_path, label_column="label"):
 
     return labels
 
+
 # Mapping from backbone names to model classes
 BACKBONE_MAP: Dict[str, type] = {
     "L336": ClipL336FeatureExtractor,
@@ -89,7 +90,7 @@ def to_tensor(pic):
     img = img.permute((2, 0, 1)).contiguous()
     return img.to(dtype=torch.get_default_dtype())
 
-# Dataset with image paths
+# Dataset with image paths (ImageFolder structure: root/class/img)
 class ImageFolderWithPaths(torchvision.datasets.ImageFolder):
     def __getitem__(self, index):
         original_tuple = super().__getitem__(index)
@@ -117,7 +118,7 @@ def attack_imgpair(
         source_crop=source_crop,
         image_org=image_org,
         source_text=source_text,
-        target_text=target_text
+        target_text=target_text,
     )
 
     for path_idx in range(len(path_org)):
@@ -203,27 +204,26 @@ def pgd_attack(
     source_text,
     target_text,
 ):
-
-    # Initialize perturbation and momentum
+    # Initialize perturbation
     delta = torch.zeros_like(image_org, requires_grad=True)
-    optimizer = torch.optim.Adam([delta], lr=cfg.optim.alpha)
+    # sign-PGD 产生类噪声扰动，减少平滑模糊感；普通模式用 Adam
+    use_sign = getattr(cfg.optim, "use_sign", False)
+    if not use_sign:
+        optimizer = torch.optim.Adam([delta], lr=cfg.optim.alpha)
 
-    # Progress bar for optimization
     pbar = tqdm(range(cfg.optim.steps), desc=f"Attack progress")
 
     with torch.no_grad():
         ensemble_loss.set_enhance(cfg.attack.enhance)
         ensemble_loss.set_ground_truth(source_crop(image_org).to(cfg.model.device), source_text, cfg.attack.vattack)
         ensemble_loss.set_target_text(target_text)
+        # patch 选择由文本相似度 V-mask 自动确定（算法自身找语义相似区域）
         ensemble_loss.set_mask()
         ensemble_loss.set_mask_index()
 
-    # Main optimization loop
-    for epoch in pbar:         
-        # Forward pass
+    for epoch in pbar:
         adv_image = image_org + delta
 
-        # If using source crop, calculate additional local similarity
         local_cropped = source_crop(adv_image)
         if cfg.attack.vattack:
             if not cfg.attack.both:
@@ -237,22 +237,23 @@ def pgd_attack(
         else:
             local_features = ensemble_extractor.xforward(local_cropped)
             loss = - ensemble_loss(local_features, Vision_A=cfg.attack.vision_attack, Target_A=cfg.attack.target_text)
-            
-        optimizer.zero_grad()
-        loss.backward()
 
-        # PGD update
-        optimizer.step()
-        delta.data = torch.clamp(
-            delta,
-            min=-cfg.optim.epsilon,
-            max=cfg.optim.epsilon,
-        )
+        if use_sign:
+            # sign-PGD：梯度符号步进，扰动呈高频噪声形态，视觉上不产生低频模糊
+            if delta.grad is not None:
+                delta.grad.zero_()
+            loss.backward()
+            with torch.no_grad():
+                delta.data -= cfg.optim.alpha * delta.grad.sign()
+                delta.data.clamp_(-cfg.optim.epsilon, cfg.optim.epsilon)
+        else:
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+            delta.data = torch.clamp(delta, min=-cfg.optim.epsilon, max=cfg.optim.epsilon)
 
-    # Create final adversarial image
     adv_image = image_org + delta
     adv_image = torch.clamp(adv_image / 255.0, 0.0, 1.0)
-
     return adv_image
 
 @hydra.main(version_base=None, config_path="config", config_name="ensemble")
@@ -264,17 +265,28 @@ def main(cfg: MainConfig):
     ensemble_loss = get_ensemble_loss(models)
 
     ## load image info
-    transform_fn = transforms.Compose(
-        [
-            transforms.Resize(
-                cfg.model.input_res,
-                interpolation=torchvision.transforms.InterpolationMode.BICUBIC,
-            ),
-            transforms.CenterCrop(cfg.model.input_res),
-            transforms.Lambda(lambda img: img.convert("RGB")),
-            transforms.Lambda(lambda img: to_tensor(img)),
-        ]
-    )
+    if cfg.model.full_resolution:
+        # 原始分辨率模式：DataLoader不做resize/crop，保持原图尺寸。
+        # 特征提取器 normalizer 负责内部缩放（梯度通过 F.interpolate 反传）。
+        # delta 与原图同尺寸，输出图片与输入分辨率完全一致。
+        transform_fn = transforms.Compose(
+            [
+                transforms.Lambda(lambda img: img.convert("RGB")),
+                transforms.Lambda(lambda img: to_tensor(img)),
+            ]
+        )
+    else:
+        transform_fn = transforms.Compose(
+            [
+                transforms.Resize(
+                    cfg.model.input_res,
+                    interpolation=torchvision.transforms.InterpolationMode.BICUBIC,
+                ),
+                transforms.CenterCrop(cfg.model.input_res),
+                transforms.Lambda(lambda img: img.convert("RGB")),
+                transforms.Lambda(lambda img: to_tensor(img)),
+            ]
+        )
 
     clean_data = ImageFolderWithPaths(cfg.data.cle_data_path, transform=transform_fn)
 
@@ -296,7 +308,7 @@ def main(cfg: MainConfig):
         source_text = load_labels_from_csv(cfg.data.text_path, label_column="source")
 
     if cfg.attack.target_text:   
-        target_text = load_labels_from_csv(cfg.data.text_path, label_column="target") 
+        target_text = load_labels_from_csv(cfg.data.text_path, label_column="target")
     
     for i, (image_org, _, path_org) in enumerate(data_loader_imagenet):
 
@@ -318,7 +330,7 @@ def main(cfg: MainConfig):
             b = [target_text[i]]
             b = dict_to_list(ensemble_extractor.tforward(b)) # {[1, 768]} -> list
         else:
-            b = [] 
+            b = []
 
         attack_imgpair(
             cfg=cfg,
@@ -327,8 +339,8 @@ def main(cfg: MainConfig):
             source_crop=source_crop,
             image_org=image_org,
             path_org=path_org,
-            source_text = a,
-            target_text = b,
+            source_text=a,
+            target_text=b,
         )
 
 if __name__ == "__main__":
