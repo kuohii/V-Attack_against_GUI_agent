@@ -7,17 +7,21 @@ import numpy as np
 class ClipB32FeatureExtractor(BaseFeatureExtractor):
     def __init__(self):
         super(ClipB32FeatureExtractor, self).__init__()
-
-        model_path = "/disk1/users/fengyy/projects/models/CLIP/clip-vit-base-patch32"
-
-        self.model = CLIPModel.from_pretrained(model_path)
-        self.processor = CLIPProcessor.from_pretrained(model_path)
-
+        # self.model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
+        # self.processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
+        # 本地模型路径
+        local_model_path = "/disk1/users/fengyy/projects/models/CLIP/clip-vit-base-patch16"
+        
+        # 从本地加载模型和处理器
+        self.model = CLIPModel.from_pretrained(local_model_path, local_files_only=True)
+        self.processor = CLIPProcessor.from_pretrained(local_model_path, local_files_only=True)
+        
         self.normalizer = transforms.Compose(
         [
+            transforms.Resize(224, interpolation=transforms.InterpolationMode.BICUBIC, antialias=True),
             transforms.Lambda(lambda img: torch.clamp(img, 0.0, 255.0) / 255.0),
-            transforms.Resize((224, 224), interpolation=transforms.InterpolationMode.BICUBIC, antialias=True),
-            transforms.Normalize((0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711)),
+            transforms.CenterCrop(224),
+            transforms.Normalize((0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711)), # CLIP imgs mean and std.
         ]
     )
 

@@ -5,7 +5,7 @@ data:
   batch_size: 1
   num_samples_index: 0
   num_samples: 300
-  output: "results/single/coco300"
+  output: "..."
   cle_data_path: "datasets/coco300" # image folder
   text_path: "datasets/coco300.csv" # label
 
@@ -19,7 +19,7 @@ model:
   use_source_crop: False
   use_target_crop: False
   crop_scale: [0.75, 1.0] 
-  device: "cuda:0" 
+  device: "cuda:7" 
   backbone: ["L336"] 
 
 

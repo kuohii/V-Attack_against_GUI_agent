@@ -7,7 +7,8 @@ import numpy as np
 class ClipL336FeatureExtractor(BaseFeatureExtractor):
     def __init__(self):
         super(ClipL336FeatureExtractor, self).__init__()
-        
+        # self.model = CLIPModel.from_pretrained("openai/clip-vit-large-patch14-336")
+        # self.processor = CLIPProcessor.from_pretrained("openai/clip-vit-large-patch14-336")
         # 本地模型路径
         local_model_path = "/disk1/users/fengyy/projects/models/CLIP/clip-vit-large-patch14-336"
         
@@ -15,12 +16,14 @@ class ClipL336FeatureExtractor(BaseFeatureExtractor):
         self.model = CLIPModel.from_pretrained(local_model_path, local_files_only=True)
         self.processor = CLIPProcessor.from_pretrained(local_model_path, local_files_only=True)
         
-        self.normalizer = transforms.Compose([
+        self.normalizer = transforms.Compose(
+        [
             transforms.Resize(336, interpolation=transforms.InterpolationMode.BICUBIC, antialias=True),
             transforms.Lambda(lambda img: torch.clamp(img, 0.0, 255.0) / 255.0),
             transforms.CenterCrop(336),
-            transforms.Normalize((0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711)),
-        ])
+            transforms.Normalize((0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711)), # CLIP imgs mean and std.
+        ]
+    )
 
     def forward(self, x):
         # x = torch.clamp(x, min=0, max=1)
